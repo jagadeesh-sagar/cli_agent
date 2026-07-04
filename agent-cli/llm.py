@@ -24,7 +24,7 @@ def ask(messages,tools=None):
     )
 
 
-    MAX_TOOL_CALLS=3
+    MAX_TOOL_CALLS=15
     tool_calls=0
 
     # handle tool request  (as tool request breaks the llm api call soo we write this logic to add another call)
@@ -45,8 +45,10 @@ def ask(messages,tools=None):
         tool_results=[]
 
         for tool in tool_use_block:
-            result=execute_tool(tool.name,tool.input) # calls tools
 
+            print(tool.name)
+
+            result=execute_tool(tool.name,tool.input) # calls tools
             tool_results.append({
                 "type":"tool_result",
                 "tool_use_id":tool.id,
@@ -62,7 +64,7 @@ def ask(messages,tools=None):
         # second call — now Claude has the file content and can answer
         response=client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=1024,
+        max_tokens=4096,
         system = SYSTEM_PROMPT,
         tools=tools,
         messages=messages

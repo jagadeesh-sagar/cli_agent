@@ -2,7 +2,7 @@ from llm import ask
 from tools import TOOLS,execute_tool,read_file,list_dir,tools
 
 messages=[
-    {"role": "user", "content": "Read hello.py, add a docstring to every function(if not exists create a function) that doesn't have one, and write the updated file back"}
+{"role": "user", "content": "Find all variables named exactly num1 and num2 in the codebase and rename them to number1 and number2 and also find exactly find nums in code base and change to numbers ."}
 ]
 
 response = ask(messages,tools=tools)
