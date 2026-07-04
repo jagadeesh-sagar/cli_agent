@@ -1,0 +1,1 @@
+SYSTEM_PROMPT="You are a coding assistant. Use tools when you need to read, list, or write files."
