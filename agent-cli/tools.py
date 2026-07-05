@@ -1,5 +1,7 @@
 from pathlib import Path
 import subprocess
+from session_management import get_recent_sessions, search_sessions, save_session
+
 
 tools = [
     {
@@ -107,6 +109,88 @@ tools = [
             },
             "required": ["path", "pattern"]
     }
+},
+{
+        "name": "append_file",
+        "description": (
+            "Add the content to the existing file ."
+            "search the file with other tools then append changes"
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "path":    {"type": "string", "description": "File path"},
+                "content": {"type": "string", "description": "Content that is going to append to the file"},
+
+            },
+            "required": ["path", "content"]
+    }
+},
+
+{
+        "name": "read_project_notes",
+        "description": (
+        "Read the AGENT.md file that stores persistent project context, "
+        "previous decisions, architecture notes, coding conventions, "
+        "known bugs, and work completed in earlier sessions."     
+              ),
+        "input_schema": {
+            "type": "object",
+            "properties": {}
+         }
+},
+
+{
+        "name": "write_project_notes",
+        "description": (
+            "Append new project notes to AGENT.md. "
+            "Record important changes, files modified, bugs fixed, "
+            "architectural decisions, and implementation patterns so future "
+            "sessions have context."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "content": {"type": "string",
+                            "description": "Markdown text to append to AGENT.md"}
+            },
+            "required": ["content"]
+    }
+}
+,{
+        "name": "get_recent_sessions",
+        "description": "Get the last N sessions to understand what was worked on before. Call this at startup after read_project_notes.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer", "description": "Number of recent sessions to fetch (default 5)"}
+            },
+            "required": []
+        }
+},
+{
+        "name": "search_sessions",
+        "description": "Search past sessions by keyword — use when user asks 'what did we do with X' or 'when did we change Y'.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "keyword": {"type": "string", "description": "Word to search in past session prompts and summaries"}
+            },
+            "required": ["keyword"]
+        }
+},
+{
+        "name": "save_session",
+        "description": "Save the current session when work is complete. Call this at the end of every session.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "prompt":     {"type": "string", "description": "What the user asked for"},
+                "summary":    {"type": "string", "description": "What was done — files changed, decisions made"},
+                "tools_used": {"type": "array", "items": {"type": "string"}, "description": "List of tool names called"}
+            },
+            "required": ["prompt", "summary", "tools_used"]
+        }
 }
 ]
 
@@ -166,13 +250,35 @@ def search_codebase(pattern:str,path:str='.')->str:
     
     return result.stdout
 
+def append_file(path: str, content: str) -> str:
+    with open(path, 'a') as f:
+        f.write(content)
+    return f"Appended to {path}"
+
+def read_project_notes()->str:
+    path=Path('./AGENT.md')
+    if not path.exists():
+        return f'No project notes yet'
+    return path.read_text()
+
+def write_project_notes(content: str) -> str:
+    with open("./AGENT.md", "a", encoding="utf-8") as f:
+        f.write("\n\n" + content)
+    return "Project notes updated."
+
 TOOLS={
 "read_file":read_file,
+"append_file":append_file,
 "read_file_section": read_file_section,
 "list_dir": list_dir,
 "write_file":write_file,
 "str_replace":str_replace,
-"search_codebase":search_codebase
+"search_codebase":search_codebase,
+"read_project_notes":read_project_notes,
+"write_project_notes":write_project_notes,
+"get_recent_sessions":get_recent_sessions,
+"search_sessions":search_sessions,
+"save_session":save_session
 }
 
 def execute_tool(name, input_args):

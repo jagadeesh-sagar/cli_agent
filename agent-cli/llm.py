@@ -70,4 +70,68 @@ def ask(messages,tools=None):
         messages=messages
         )
 
-    return (response.content[0].text)
+    final_text=response.content[0].text
+    print("hiisd",final_text)
+
+    messages.append({
+        'role':'assistant',
+        'content':response.content
+    })
+
+    messages.append({
+        'role':'user',
+        'content':"Task complete. Run shutdown sequence: write_project_notes "
+        "if anything new was learned, then save_session with the prompt, summary, and tools used."
+            })
+    
+    shutdown_response=client.messages.create(
+
+        model='claude-haiku-4-5-20251001',
+        max_tokens=4096,
+        system = SYSTEM_PROMPT,
+        tools=tools,
+        messages=messages
+        )
+    shutdown_calls=0
+
+    while shutdown_response.stop_reason=='tool_use':
+        shutdown_calls+=1
+
+        if shutdown_calls>5:
+            break
+
+        tool_use_block=[b for b in shutdown_response.content if b.type=='tool_use'] 
+
+        messages.append({
+            "role": "assistant",
+            "content": shutdown_response.content
+        })
+
+        tool_results=[]
+
+        for tool in tool_use_block:
+
+            print(tool.name)
+
+            result=execute_tool(tool.name,tool.input) # calls tools
+            tool_results.append({
+                "type":"tool_result",
+                "tool_use_id":tool.id,
+                "content":result,
+            })
+
+        messages.append({
+            'role':"user",
+            "content":tool_results
+        })
+
+        shutdown_response=client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=4096,
+        system = SYSTEM_PROMPT,
+        tools=tools,
+        messages=messages
+        )
+
+    return final_text
+

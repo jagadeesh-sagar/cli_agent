@@ -1,9 +1,11 @@
 from llm import ask
-from tools import TOOLS,execute_tool,read_file,list_dir,tools
+from tools import tools
+from session_management import init_db
+
+init_db()
 
 messages=[
-{"role": "user", "content": "Find all variables named exactly num1 and num2 in the codebase and rename them to number1 and number2 and also find exactly find nums in code base and change to numbers ."}
-]
+{"role": "user", "content": "in ./leetcodes.py file write a python max heap code "}]
 
 response = ask(messages,tools=tools)
 
