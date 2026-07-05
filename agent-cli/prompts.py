@@ -28,6 +28,11 @@ write_project_notes — update after any successful edit, include:
 - bugs fixed
 - new patterns or APIs introduced
 
+bash tool rules:
+- Use bash to verify your edits actually work — run the file after changing it
+- Always run bash AFTER str_replace to confirm no syntax errors
+- Never use bash to delete files — use it only to run and check code
+
 search_codebase usage:
 - Use specific variable/function names as patterns, not partial words
 - search for `num1` not `num`

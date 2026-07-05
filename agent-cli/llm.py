@@ -7,8 +7,6 @@ from prompts import SYSTEM_PROMPT
 from tools import execute_tool
 
 load_dotenv()
-
-
 client=anthropic.Anthropic()
 
 

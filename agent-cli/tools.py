@@ -2,6 +2,7 @@ from pathlib import Path
 import subprocess
 from session_management import get_recent_sessions, search_sessions, save_session
 
+PROJECT_PATH = str(Path(".").resolve()) 
 
 tools = [
     {
@@ -191,6 +192,25 @@ tools = [
             },
             "required": ["prompt", "summary", "tools_used"]
         }
+},
+{
+        "name": "bash",
+        "description": (
+            "Run a shell command inside a sandboxed Docker container. "
+            "Use to run Python files, check output, run tests, install packages. "
+            "The container has access to your project files . "
+            "No internet access inside the container. Timeout: 30s."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "string",
+                    "description": "Shell command to run. e.g. 'python hello.py' or 'python -m pytest'"
+                }
+            },
+            "required": ["command"]
+    }
 }
 ]
 
@@ -250,6 +270,31 @@ def search_codebase(pattern:str,path:str='.')->str:
     
     return result.stdout
 
+def bash(command:str)->str:
+    try:
+        result=subprocess.run(
+            ["docker","run","--rm",
+            "--memory","256m",
+            "--cpus","0.5",
+            "--network","none",
+            "--volume",f"{PROJECT_PATH}:/workspace",
+            "--workdir","/workspace",
+            "python:3.12-slim",
+            "bash", "-c", command],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        output = result.stdout
+        if result.stderr:
+                output += f"\n[stderr]\n{result.stderr}"
+        return output or "(no output)"
+
+    except subprocess.TimeoutExpired:
+        return "ERROR: command timed out after 30s"
+    except FileNotFoundError:
+        return "ERROR: docker not found — is Docker running?"
+
 def append_file(path: str, content: str) -> str:
     with open(path, 'a') as f:
         f.write(content)
@@ -278,7 +323,9 @@ TOOLS={
 "write_project_notes":write_project_notes,
 "get_recent_sessions":get_recent_sessions,
 "search_sessions":search_sessions,
-"save_session":save_session
+"save_session":save_session,
+'bash':bash
+
 }
 
 def execute_tool(name, input_args):
