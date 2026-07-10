@@ -1,0 +1,25 @@
+# Claude model to use for all API calls
+# Options: claude-haiku-4-5-20251001 | claude-sonnet-4-5-20251001
+
+model: claude-haiku-4-5-20251001
+
+# Maximum tool calls per task before raising an error
+max_tool_calls: 15
+
+# Maximum tool calls allowed during the shutdown / save sequence
+max_shutdown_calls: 5
+
+# Path to the SQLite database file (relative to agent-cli/)
+db_path: sessions.db
+
+# Path to the project notes file (relative to agent-cli/)
+project_notes: AGENT.md
+
+# Maximum tokens for the initial LLM response
+max_tokens: 1024
+
+# Maximum tokens for tool-use continuation responses
+max_tokens_tool: 4096
+
+# is used to limit the contect reaching limit
+max_history_calls: 10
