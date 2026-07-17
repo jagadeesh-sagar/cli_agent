@@ -8,19 +8,21 @@ CONFIG_PATH = Path(__file__).parent / ".agent.yaml"
 # ── default values──────────────
 DEFAULTS = {
     "model": "claude-haiku-4-5-20251001",
+    "provider": "anthropic",
     "max_tool_calls": 15,
     "max_shutdown_calls": 5,
     "db_path": "sessions.db",
     "project_notes": "AGENT.md",
     "max_tokens": 1024,
     "max_tokens_tool": 4096,
-    "max_history_calls":10
+    "max_history_calls": 10
 }
 
 
 @dataclass
 class AgentConfig:
     model: str
+    provider: str
     max_tool_calls: int
     max_shutdown_calls: int
     db_path: str
@@ -45,6 +47,7 @@ def load_config() -> AgentConfig:
 
     return AgentConfig(
         model=merged["model"],
+        provider=merged["provider"],
         max_tool_calls=int(merged["max_tool_calls"]),
         max_shutdown_calls=int(merged["max_shutdown_calls"]),
         db_path=merged["db_path"],

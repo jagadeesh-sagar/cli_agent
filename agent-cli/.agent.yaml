@@ -1,7 +1,9 @@
-# Claude model to use for all API calls
-# Options: claude-haiku-4-5-20251001 | claude-sonnet-4-5-20251001
+# Options: claude-haiku-4-5-20251001 (anthropic) | meta-llama/llama-4-scout-17b-16e-instruct (groq) | deepseek-chat (deepseek) | sarvam-105b (sarvam)
+model: sarvam-105b 
 
-model: claude-haiku-4-5-20251001
+# LLM provider to use — matches a file in the providers/ folder
+# Options: anthropic | groq | deepseek | openrouter | together | openai | sarvam
+provider: sarvam
 
 # Maximum tool calls per task before raising an error
 max_tool_calls: 15
@@ -13,7 +15,7 @@ max_shutdown_calls: 5
 db_path: sessions.db
 
 # Path to the project notes file (relative to agent-cli/)
-project_notes: AGENT.md
+project_notes: memory/AGENT.md
 
 # Maximum tokens for the initial LLM response
 max_tokens: 1024

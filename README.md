@@ -1,14 +1,16 @@
 # 🤖 CLI Agent
 
-> An autonomous AI coding assistant powered by Claude (Anthropic) that reads, writes, and edits files on your local machine — right from your terminal.
+> A modular, autonomous AI coding assistant that reads, writes, and edits files on your local machine — right from your terminal.
 
 ---
 
 ## 📖 Overview
 
-**CLI Agent** is a local AI agent that uses Claude's tool-use capabilities to interact with your codebase. Give it a task in plain English, and it will autonomously read files, write code, search your codebase, and save a record of everything it did — all in a loop until the job is done.
+**CLI Agent** is a local AI agent designed to interact autonomously with your codebase. You give it a task in plain English via an interactive REPL, and it will read files, write code, run bash commands, and save a record of everything it did until the job is done.
 
-It features **persistent session memory** via SQLite so the agent can recall what it worked on in previous runs, and a **project notes system** (`AGENT.md`) that keeps long-running architectural decisions and coding conventions intact across sessions.
+It features **persistent session memory** via SQLite so the agent can recall past interactions, and a **project notes system** (`memory/AGENT.md`) that keeps long-running architectural decisions and coding conventions intact across sessions.
+
+Best of all, it has a **modular provider architecture**. You can easily switch between Anthropic, Groq, DeepSeek, Sarvam, or any OpenAI-compatible endpoint with a single line change in your config!
 
 ---
 
@@ -16,31 +18,12 @@ It features **persistent session memory** via SQLite so the agent can recall wha
 
 | Feature | Description |
 |---|---|
-| 🔍 **Codebase Search** | Uses `ripgrep` to find exact patterns before touching any file |
-| 📖 **Smart File Reading** | Chunk-based file reading to minimise token usage |
-| ✏️ **Safe File Editing** | `str_replace` for surgical edits; `write_file` for new files |
-| 🧠 **Session Memory** | SQLite database stores every session's prompt, summary & tools used |
-| 📝 **Project Notes** | `AGENT.md` persists project-level context between sessions |
-| 🔁 **Agentic Loop** | Automatically handles multi-step tool calls until the task is complete |
-| 🛑 **Shutdown Sequence** | Agent always saves notes & session before exiting |
-
----
-
-## 🗂️ Project Structure
-
-```
-cli_agent/
-└── agent-cli/
-    ├── main.py               # Entry point — set your task here
-    ├── llm.py                # Agentic loop: calls Claude + handles tool use
-    ├── tools.py              # Tool definitions (schemas) + implementations
-    ├── prompts.py            # System prompt with agent lifecycle rules
-    ├── session_management.py # SQLite-backed session save/search/recall
-    ├── AGENT.md              # Auto-updated project notes (written by the agent)
-    ├── sessions.db           # SQLite database (auto-created)
-    ├── requirements.txt      # Python dependencies
-    └── .env                  # Your API key (not committed)
-```
+| 🔌 **Modular Providers** | Easily swap between Anthropic and OpenAI-compatible APIs (Groq, DeepSeek, Sarvam). |
+| 🔁 **Interactive REPL** | Chat directly with the agent. It remembers context across turns. |
+| ✏️ **Local File & Command Access** | The agent can read/write files and execute bash commands on your machine. |
+| 🧠 **Session Memory** | SQLite database (`sessions.db`) stores every session's prompt, summary, and tools used. |
+| 📝 **Project Notes** | `memory/AGENT.md` persists project-level context between sessions automatically. |
+| ⚙️ **YAML Configuration** | Centralised `.agent.yaml` configuration file for zero-code configuration. |
 
 ---
 
@@ -49,8 +32,7 @@ cli_agent/
 ### 1. Prerequisites
 
 - Python 3.10+
-- [`ripgrep`](https://github.com/BurntSushi/ripgrep) installed and on your `PATH`
-- An [Anthropic API key](https://console.anthropic.com/)
+- An API key for your preferred provider (Anthropic, Groq, DeepSeek, etc.)
 
 ### 2. Clone & Set Up
 
@@ -58,132 +40,122 @@ cli_agent/
 git clone <your-repo-url>
 cd cli_agent
 
-# Create a virtual environment
+# Create and activate a virtual environment
 python -m venv venv
 source venv/bin/activate      # Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install -r agent-cli/requirements.txt
+cd agent-cli
+pip install -r requirements.txt
 ```
 
-### 3. Configure API Key
+### 3. Configure Your Provider & API Key
 
-Create a `.env` file inside `agent-cli/`:
+First, define your environment variables. Create a `.env` file inside `agent-cli/`:
 
 ```env
+# Add whichever API keys you plan to use:
 ANTHROPIC_API_KEY=sk-ant-...
+GROQ_API_KEY=gsk_...
+DEEPSEEK_API_KEY=sk-...
+SARVAM_API_KEY=...
 ```
+
+Next, open `.agent.yaml` to choose your provider and model:
+
+```yaml
+# Select your provider (anthropic, groq, deepseek, sarvam, openai, together, openrouter)
+provider: groq
+
+# Select your model
+model: llama-3.3-70b-versatile
+```
+*(Tip: For Groq, `llama-3.3-70b-versatile` or `llama3-groq-70b-8192-tool-use-preview` are highly recommended for robust tool calling).*
 
 ### 4. Run the Agent
 
-Edit the task in `agent-cli/main.py`:
-
-```python
-messages = [
-    {"role": "user", "content": "In ./my_file.py, add a binary search function"}
-]
-```
-
-Then run:
+Start the interactive CLI:
 
 ```bash
-cd agent-cli
 python main.py
 ```
 
-The agent will autonomously search, read, write, and document everything it does.
+Type your prompt (e.g., `"Write a binary search function in search.py"`). The agent will autonomously read, write, and execute commands to accomplish the goal!
 
 ---
 
-## 🛠️ Available Tools
+## 🛠️ CLI Commands
 
-The agent has access to the following tools:
+The entry point `main.py` provides some handy subcommands to inspect the agent's memory:
 
-| Tool | Purpose |
-|---|---|
-| `read_file` | Read entire file contents |
-| `read_file_section` | Read a specific line range (token-efficient) |
-| `list_dir` | List all files in a directory |
-| `write_file` | Write/create a file |
-| `str_replace` | Surgically replace a unique string in a file |
-| `append_file` | Append content to an existing file |
-| `search_codebase` | Search for patterns using ripgrep |
-| `read_project_notes` | Load `AGENT.md` for project context |
-| `write_project_notes` | Append new notes to `AGENT.md` |
-| `get_recent_sessions` | Recall last N sessions from SQLite |
-| `search_sessions` | Search past sessions by keyword |
-| `save_session` | Persist the current session on shutdown |
+```bash
+# Start the interactive REPL
+python main.py
 
----
+# List the last 10 sessions the agent worked on
+python main.py --history
 
-## 🧠 How the Agent Loop Works
+# Search past sessions for a specific topic
+python main.py --search "binary search"
 
-```
-User Prompt
-    │
-    ▼
-Claude (claude-haiku-4-5) ──► tool_use? ──YES──► Execute Tool ──► Back to Claude
-    │                                                                     ▲
-    │ (stop_reason = end_turn)                                            │
-    ▼                                                            (up to 15 calls)
-Final Response
-    │
-    ▼
-Shutdown Sequence
-  ├─ write_project_notes (if new knowledge gained)
-  └─ save_session (always)
+# Print the agent's internal project notes
+python main.py --notes
 ```
 
-- The loop runs until `stop_reason == "end_turn"` or 15 tool calls are exhausted.
-- A second **shutdown loop** (max 5 calls) runs after every task to persist knowledge.
-
 ---
 
-## ⚙️ Configuration
+## ⚙️ Configuration (`.agent.yaml`)
 
-| Setting | Location | Default |
+Your agent's behaviour is entirely driven by `.agent.yaml`:
+
+| Setting | Purpose | Default Example |
 |---|---|---|
-| Claude Model | `llm.py` | `claude-haiku-4-5-20251001` |
-| Max Tool Calls | `llm.py` | `15` |
-| Max Shutdown Calls | `llm.py` | `5` |
-| DB Path | `session_management.py` | `sessions.db` |
-| Project Notes | `tools.py` | `./AGENT.md` |
+| `model` | The exact LLM model string | `claude-haiku-4-5-20251001` |
+| `provider` | Routes to the correct API (`anthropic`, `groq`, etc.) | `anthropic` |
+| `max_tool_calls` | Hard limit on how many tools the agent can use in one loop | `15` |
+| `max_shutdown_calls` | Hard limit on tools used during the memory-save loop | `5` |
+| `project_notes` | Path to the agent's knowledge markdown file | `memory/AGENT.md` |
+| `db_path` | SQLite file location | `sessions.db` |
 
 ---
 
-## 📦 Dependencies
+## 🔌 Adding New LLM Providers
+
+If you want to use an OpenAI-compatible API that isn't built in:
+1. Open `providers/openai_compat.py`.
+2. Add your provider's base URL and env key to the `_PROVIDER_CONFIG` dictionary.
+3. Open `providers/__init__.py` and add the provider name to the `name in (...)` check.
+4. Set `provider: your_provider` in `.agent.yaml`.
+
+---
+
+## 🗂️ Project Structure
 
 ```
-anthropic       # Claude API client
-python-dotenv   # Load .env API key
+cli_agent/
+└── agent-cli/
+    ├── main.py               # Minimal entry point (delegates to cli.py)
+    ├── cli.py                # CLI commands, argument parsing, and the REPL
+    ├── agent.py              # The core agentic loop (execute tools, send to LLM)
+    ├── config.py             # Loads and validates .agent.yaml
+    ├── llm.py                # Legacy LLM abstractions (now replaced by providers/)
+    ├── prompts.py            # System prompts and agent lifecycle rules
+    ├── .agent.yaml           # Easy configuration file
+    ├── memory/
+    │   └── AGENT.md          # Auto-updated project knowledge base
+    ├── providers/            # Modular LLM factory
+    │   ├── __init__.py       # Provider registry & lazy-loading singleton
+    │   ├── anthropic.py      # Anthropic SDK implementation
+    │   ├── openai_compat.py  # Handles Groq, DeepSeek, Sarvam, OpenAI, etc.
+    │   └── base.py           # Abstract Base Class for providers
+    ├── tools/                # Tool implementations and JSON schemas
+    └── sessions.db           # SQLite database (auto-created)
 ```
-
-> **Optional**: Install `ripgrep` for codebase search support.
-> Ubuntu/Debian: `sudo apt install ripgrep`
-> macOS: `brew install ripgrep`
 
 ---
 
 ## 🔐 Security Notes
 
-- Your `.env` file (containing the API key) is listed in `.gitignore` — **never commit it**.
-- The agent can read and write files on your machine. Point it at project directories you trust.
-- Tool call depth is capped at 15 to prevent runaway loops.
-
-## 🗺️ Roadmap
-
-- [ ] Interactive REPL / chat mode
-- [ ] Multi-file awareness and project-wide refactoring
-- [ ] Support for `run_command` / shell execution tool
-- [ ] Web search tool integration
-- [ ] Upgrade to Claude Sonnet/Opus for complex tasks
-- [ ] YAML-based task config files
-- [ ] Token usage tracking and cost estimation
-
----
-
-## 🤝 Contributing
-
-Pull requests are welcome! For major changes, please open an issue first to discuss what you'd like to change.
-
----
+- **Never commit your `.env` file**. It is included in `.gitignore`.
+- The agent has a raw **Bash tool**. Be careful with the directories you run this in, as it can modify, delete, and execute files locally.
+- Runaway loops are prevented by `max_tool_calls` in `.agent.yaml`.

@@ -89,13 +89,17 @@ def append_file(path: str, content: str) -> str:
         f.write(content)
     return f"Appended to {path}"
 
-def read_project_notes()->str:
-    path=Path('./AGENT.md')
+def read_project_notes() -> str:
+    from config import cfg
+    path = Path(__file__).parent.parent / cfg.project_notes
     if not path.exists():
-        return f'No project notes yet'
+        return 'No project notes yet'
     return path.read_text()
 
 def write_project_notes(content: str) -> str:
-    with open("./AGENT.md", "a", encoding="utf-8") as f:
+    from config import cfg
+    path = Path(__file__).parent.parent / cfg.project_notes
+    path.parent.mkdir(parents=True, exist_ok=True)  # create memory/ if missing
+    with open(path, "a", encoding="utf-8") as f:
         f.write("\n\n" + content)
     return "Project notes updated."

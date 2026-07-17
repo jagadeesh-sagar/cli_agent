@@ -34,4 +34,4 @@ def execute_tool(name, input_args):
         console.print(f"  [cyan]→ Tool:[/] {name}({input_args})")
         return TOOLS[name](**input_args)
     except Exception as e:
-        return f'Error in {name}:{e}'
+        return f"{type(e).__name__}: {e}"
