@@ -26,7 +26,7 @@ from openai import OpenAI
 
 from .base import BaseProvider
 from config import cfg
-from prompts import SYSTEM_PROMPT
+from prompts import get_system_prompt
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -118,7 +118,7 @@ class OpenAICompatProvider(BaseProvider):
          - we do NOT mutate the caller's `messages` list
         """
         try:
-            full_messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages
+            full_messages = [{"role": "system", "content": get_system_prompt()}] + messages
             openai_tools  = _to_openai_tools(tools) if tools else None
 
             response = self.client.chat.completions.create(
@@ -128,6 +128,7 @@ class OpenAICompatProvider(BaseProvider):
                 tools=openai_tools,
                 parallel_tool_calls=False,  # one tool at a time → more reliable format
             )
+            print("RAW RESPONSE:", repr(response))
             return response
 
         except Exception as e:

@@ -206,7 +206,7 @@ tools = [
             "required": ["command"]
     }
 },
-# cache_control on the LAST tool = caches system prompt + ALL tool schemas as one block
+# cache_control on the LAST tool = caches system prompt + ALL tool schemas as one block(only for anthropic as cache is not auto enabled)
 {
     "name": "web_search",
     "description": "Search the web for real-time information. Use for docs, APIs, or anything not in the codebase.",
@@ -218,6 +218,20 @@ tools = [
         },
         "required": ["query"]
     },
-    "cache_control": {"type": "ephemeral"}
+},
+{
+    "name": "load_skill",
+    "description": "Read the contents of the skill",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name of the file"
+                }
+        },
+        "required": ["name"]
+    },
 }
+
 ]

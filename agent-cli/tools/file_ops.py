@@ -22,8 +22,10 @@ def read_file_section(path: str,start_line:int,end_line:int)-> str:
 def list_dir(path: str)->str:
     return "\n".join(str(p) for p in Path(path).rglob("*") if p.is_file())
 
-def write_file(path:str,content:str)-> str:
-    Path(path).write_text(content)
+def write_file(path: str, content: str) -> str:
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)   # create parent dirs if missing
+    p.write_text(content)
     return f"Written to {path}"
 
 def str_replace(path:str,old_str:str,new_str:str)->str:
@@ -68,7 +70,7 @@ def bash(command:str)->str:
             "--network","none",
             "--volume",f"{PROJECT_PATH}:/workspace",
             "--workdir","/workspace",
-            "python:3.12-slim",
+            "agent-sandbox",
             "bash", "-c", command],
             capture_output=True,
             text=True,

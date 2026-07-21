@@ -3,7 +3,7 @@ import anthropic
 from dotenv import load_dotenv
 import logging
 
-from prompts import SYSTEM_PROMPT
+from prompts import get_system_prompt
 from config import cfg
 
 load_dotenv()
@@ -24,7 +24,7 @@ class AnthropicProvider(BaseProvider):
             response=self.client.messages.create(
             model=cfg.model,
             max_tokens=cfg.max_tokens,
-            system=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
+            system=[{"type": "text", "text": get_system_prompt(), "cache_control": {"type": "ephemeral"}}],
             messages=messages,
             tools=tools
             )     

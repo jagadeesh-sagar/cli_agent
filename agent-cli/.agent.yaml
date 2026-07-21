@@ -6,7 +6,7 @@ model: sarvam-105b
 provider: sarvam
 
 # Maximum tool calls per task before raising an error
-max_tool_calls: 15
+max_tool_calls: 40
 
 # Maximum tool calls allowed during the shutdown / save sequence
 max_shutdown_calls: 5
@@ -18,10 +18,10 @@ db_path: sessions.db
 project_notes: memory/AGENT.md
 
 # Maximum tokens for the initial LLM response
-max_tokens: 1024
+max_tokens: 4096
 
 # Maximum tokens for tool-use continuation responses
-max_tokens_tool: 4096
+max_tokens_tool: 10000
 
 # is used to limit the contect reaching limit
 max_history_calls: 10

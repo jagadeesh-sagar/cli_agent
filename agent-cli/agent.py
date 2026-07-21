@@ -47,13 +47,13 @@ def run_conversation(messages,tools):
                 provider.format_tool_result(
                     tool,
                     result))
-            print(tool_results,'jaggu',messages)
 
         provider.append_tool_results(
             messages=messages,
             tool_results=tool_results)
         
         response=provider.send(messages=messages,tools=tools)
+        
 
     # final_text=provider.get_text(response=response)
 

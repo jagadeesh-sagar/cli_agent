@@ -9,12 +9,12 @@ CONFIG_PATH = Path(__file__).parent / ".agent.yaml"
 DEFAULTS = {
     "model": "claude-haiku-4-5-20251001",
     "provider": "anthropic",
-    "max_tool_calls": 15,
+    "max_tool_calls": 150,
     "max_shutdown_calls": 5,
     "db_path": "sessions.db",
     "project_notes": "AGENT.md",
-    "max_tokens": 1024,
-    "max_tokens_tool": 4096,
+    "max_tokens": 40000,
+    "max_tokens_tool": 7000,
     "max_history_calls": 10
 }
 
