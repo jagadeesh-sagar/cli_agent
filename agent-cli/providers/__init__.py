@@ -26,7 +26,7 @@ def _load_provider(name: str) -> BaseProvider:
         return AnthropicProvider()
 
     # ── OpenAI-compatible providers (one class handles all of them) ────────────
-    if name in ("groq", "deepseek", "openrouter", "together", "openai", "sarvam"):
+    if name in ("groq", "deepseek", "openrouter", "together", "openai", "sarvam","google"):
         from .openai_compat import OpenAICompatProvider
         return OpenAICompatProvider(provider_name=name)
 
@@ -41,13 +41,30 @@ def _load_provider(name: str) -> BaseProvider:
     )
 
 
-# ── Singleton — created once when the module is first imported ─────────────────
+# ── Executor singleton ─────────────────────────────────────────────────────────
 _instance: BaseProvider | None = None
 
 def get_provider() -> BaseProvider:
-    """Return the shared provider instance (created from cfg.provider)."""
+    """Return the shared executor provider instance (created from cfg.provider)."""
     global _instance
     if _instance is None:
         _instance = _load_provider(cfg.provider)
     return _instance
 
+
+# ── Planner singleton (separate — can be a different model/provider) ───────────
+_planner_instance: BaseProvider | None = None
+
+def get_planner_provider() -> BaseProvider:
+    """
+    Return the shared planner provider instance.
+
+    Reads cfg.planner_provider and cfg.planner_model from .agent.yaml.
+    Falls back to the executor provider if planner_provider is not set,
+    so existing setups with only `provider:` still work.
+    """
+    global _planner_instance
+    if _planner_instance is None:
+        planner_name = getattr(cfg, "planner_provider", None) or cfg.provider
+        _planner_instance = _load_provider(planner_name)
+    return _planner_instance

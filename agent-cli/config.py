@@ -9,6 +9,8 @@ CONFIG_PATH = Path(__file__).parent / ".agent.yaml"
 DEFAULTS = {
     "model": "claude-haiku-4-5-20251001",
     "provider": "anthropic",
+    "planner_provider": None,      # falls back to provider if not set
+    "planner_model": None,         # falls back to model if not set
     "max_tool_calls": 150,
     "max_shutdown_calls": 5,
     "db_path": "sessions.db",
@@ -23,13 +25,15 @@ DEFAULTS = {
 class AgentConfig:
     model: str
     provider: str
+    planner_provider: str | None    # None → falls back to provider
+    planner_model: str | None       # None → falls back to model
     max_tool_calls: int
     max_shutdown_calls: int
     db_path: str
     project_notes: str
     max_tokens: int
     max_tokens_tool: int
-    max_history_calls:int
+    max_history_calls: int
 
 
 def load_config() -> AgentConfig:
@@ -48,6 +52,8 @@ def load_config() -> AgentConfig:
     return AgentConfig(
         model=merged["model"],
         provider=merged["provider"],
+        planner_provider=merged.get("planner_provider"),
+        planner_model=merged.get("planner_model"),
         max_tool_calls=int(merged["max_tool_calls"]),
         max_shutdown_calls=int(merged["max_shutdown_calls"]),
         db_path=merged["db_path"],

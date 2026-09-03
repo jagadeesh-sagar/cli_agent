@@ -71,6 +71,7 @@ _PROVIDER_CONFIG = {
     "together": {"env_key": "TOGETHER_API_KEY",  "base_url": "https://api.together.xyz/v1"},
     "openrouter":{"env_key": "OPENROUTER_API_KEY","base_url": "https://openrouter.ai/api/v1"},
     "sarvam":   {"env_key": "SARVAM_API_KEY",    "base_url": "https://api.sarvam.ai/v1"},
+    "google":   {"env_key": "GEMINI_API_KEY",     "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/"},
     "openai":   {"env_key": "OPENAI_API_KEY",    "base_url": None},   # uses default
 }
 
@@ -134,6 +135,33 @@ class OpenAICompatProvider(BaseProvider):
         except Exception as e:
             logger.error(f"API call failed: {e}")
             raise RuntimeError(f"API call failed: {e}")
+
+    def raw_send(self, system_prompt: str, user_message: str) -> str:
+        """
+        Minimal LLM call for the planner — no tools, no coding system prompt.
+
+        Returns the plain text content string directly (not the full response
+        object) because the planner only needs the raw JSON text.
+
+        Uses cfg.planner_model if set, otherwise falls back to cfg.model.
+        """
+        model = getattr(cfg, "planner_model", None) or cfg.model
+        try:
+            response = self.client.chat.completions.create(
+                model=model,
+                max_tokens=cfg.max_tokens,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": user_message}
+                ],
+            )
+            print(response)
+            return response.choices[0].message.content or ""
+
+        except Exception as e:
+            logger.error(f"raw_send failed: {e}")
+            raise RuntimeError(f"raw_send failed: {e}")
+
 
     # ── Tool call detection ────────────────────────────────────────────────────
 
@@ -200,3 +228,4 @@ class OpenAICompatProvider(BaseProvider):
 
     def user_shutdown_message(self, messages: list, content: str) -> None:
         messages.append({"role": "user", "content": content})
+

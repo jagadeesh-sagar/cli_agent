@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import logging
 
 from prompts import get_system_prompt
+
 from config import cfg
 
 load_dotenv()
@@ -84,3 +85,26 @@ class AnthropicProvider(BaseProvider):
         messages.append({
         'role':'user',
         'content':content})
+
+    def raw_send(self, system_prompt: str, user_message: str) -> str:
+        """
+        Minimal LLM call for the planner — no tools, no coding system prompt.
+
+        Returns plain text (the raw JSON string from the LLM), not the
+        full response object. Uses cfg.planner_model when set.
+        """
+        model = getattr(cfg, "planner_model", None) or cfg.model
+        try:
+            response = self.client.messages.create(
+                model=model,
+                max_tokens=cfg.max_tokens,
+                system=[{"type": "text", "text": system_prompt,
+                         "cache_control": {"type": "ephemeral"}}],
+                messages=[{"role": "user", "content": user_message}],
+            )
+            return response.content[0].text
+
+        except Exception as e:
+            logger.error(f"raw_send failed: {str(e)}")
+            raise RuntimeError(f"raw_send failed: {str(e)}")
+

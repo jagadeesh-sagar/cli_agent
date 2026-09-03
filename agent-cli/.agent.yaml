@@ -1,12 +1,12 @@
-# Options: claude-haiku-4-5-20251001 (anthropic) | meta-llama/llama-4-scout-17b-16e-instruct (groq) | deepseek-chat (deepseek) | sarvam-105b (sarvam)
-model: sarvam-105b 
+# Options: claude-haiku-4-5-20251001 (anthropic) | meta-llama/llama-4-scout-17b-16e-instruct (groq) | deepseek-chat (deepseek) | sarvam-105b (sarvam) | gemini-2.5-pro
+model: sarvam-105b
 
 # LLM provider to use — matches a file in the providers/ folder
-# Options: anthropic | groq | deepseek | openrouter | together | openai | sarvam
+# Options: anthropic | groq | deepseek | openrouter | together | openai | sarvam | google
 provider: sarvam
 
 # Maximum tool calls per task before raising an error
-max_tool_calls: 40
+max_tool_calls: 100
 
 # Maximum tool calls allowed during the shutdown / save sequence
 max_shutdown_calls: 5
@@ -23,5 +23,8 @@ max_tokens: 4096
 # Maximum tokens for tool-use continuation responses
 max_tokens_tool: 10000
 
-# is used to limit the contect reaching limit
+# is used to limit the context reaching limit
 max_history_calls: 10
+
+planner_provider: google   # or openrouter / vertex depending on your proxy setup
+planner_model: gemini-3.1-flash-lite
