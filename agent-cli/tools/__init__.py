@@ -4,6 +4,8 @@ from . import file_ops
 from .skills_ops import load_skill, list_skills
 from .web_ops import web_search
 import os
+from .memory_ops import index_project,scan_directory,semantic_search
+from .schemas import tools
 
 console = Console()
 
@@ -25,6 +27,9 @@ TOOLS = {
     "web_search":         web_search,
     "list_skills":        list_skills,
     "load_skill":         load_skill,
+    "index_project":     index_project,
+    "scan_directory": scan_directory,
+    "semantic_search": semantic_search,
 }
 
 # Paths the model hallucinates when it loses context.
@@ -62,14 +67,23 @@ def _sanitize_paths(args: dict) -> dict:
     return sanitized
 
 
-def execute_tool(name, input_args):
+def execute_tool(name, input_args,model=None):
     if name not in TOOLS:
         return "TOOL_ERROR: unknown tool — check tool name"
 
     try:
         clean_args = _sanitize_paths(input_args)
         console.print(f"  [cyan]→ Tool:[/] {name}({clean_args})")
-        result = str(TOOLS[name](**clean_args))
+        if name in {"index_project", "semantic_search"}:
+            result = TOOLS[name](
+                **clean_args,
+                model=model
+            )
+
+        else:
+            result = TOOLS[name](**clean_args)
+            
+        result = str(result)
 
         if not result.strip():
             result = f"(no output from {name})"
@@ -77,3 +91,26 @@ def execute_tool(name, input_args):
 
     except Exception as e:
         return f"TOOL_ERROR: {type(e).__name__}: {e}"
+
+available_tools = [
+    "read_file",
+    "append_file",
+    "read_file_section",
+    "list_dir",
+    "write_file",
+    "str_replace",
+    "search_codebase",
+    "read_project_notes",
+    "write_project_notes",
+    "get_recent_sessions",
+    "search_sessions",
+    "save_session",
+    "bash",
+    "web_search",
+    "list_skills",
+    "load_skill",
+    "index_project","scan_directory","semantic_search"
+]
+
+# def list_tools(available_tools:list[str])->list[str]:
+#     return available_tools

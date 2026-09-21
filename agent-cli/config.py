@@ -14,6 +14,7 @@ DEFAULTS = {
     "max_tool_calls": 150,
     "max_shutdown_calls": 5,
     "db_path": "sessions.db",
+    "vector_db_path":"vectors.db",
     "project_notes": "AGENT.md",
     "max_tokens": 40000,
     "max_tokens_tool": 7000,
@@ -30,6 +31,7 @@ class AgentConfig:
     max_tool_calls: int
     max_shutdown_calls: int
     db_path: str
+    vector_db_path: str
     project_notes: str
     max_tokens: int
     max_tokens_tool: int
@@ -57,6 +59,7 @@ def load_config() -> AgentConfig:
         max_tool_calls=int(merged["max_tool_calls"]),
         max_shutdown_calls=int(merged["max_shutdown_calls"]),
         db_path=merged["db_path"],
+        vector_db_path=merged['vector_db_path'],
         project_notes=merged["project_notes"],
         max_tokens=int(merged["max_tokens"]),
         max_tokens_tool=int(merged["max_tokens_tool"]),

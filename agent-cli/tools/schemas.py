@@ -232,6 +232,62 @@ tools = [
         },
         "required": ["name"]
     },
+},
+{
+    "name": "semantic_search",
+    "description": (
+        "Search the codebase by meaning using semantic vector search. "
+        "Use this when the user asks about a concept, behavior, or functionality "
+        "and you do not know the exact symbol or file name. "
+        "For example, use this for questions like 'where is authentication "
+        "handled?' or 'how does the application manage database connections?'. "
+        "Returns the most semantically relevant code chunks and their file paths."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": (
+                    "Natural-language description of the code or behavior "
+                    "you are looking for."
+                )
+            },
+            "n_results": {
+                "type": "integer",
+                "description": (
+                    "Number of relevant code chunks to return. "
+                    "Use 3-5 for normal searches and increase only when necessary."
+                )
+                }
+
+            }
+        },
+        "required": ["query"]
+    },
+    {
+    "name": "index_project",
+    "description": (
+        "Index the source code of a project into the vector database for "
+        "semantic code search. Provide the root directory of the project. "
+        "The project path is recursively scanned and supported source files are "
+        "split into chunks, embedded, and stored in the vector database. "
+        "Use this when the codebase has not been indexed yet or after major "
+        "codebase changes."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "project_path": {
+                "type": "string",
+                "description": (
+                    "Absolute or relative path to the root directory of the "
+                    "project to index. Example: '/home/jaggu/Desktop/Ecommerce/ecommerce'"
+                )
+            }
+        },
+        "required": ["project_path"]
+    }
 }
 
 ]

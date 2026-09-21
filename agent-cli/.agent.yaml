@@ -12,7 +12,10 @@ max_tool_calls: 100
 max_shutdown_calls: 5
 
 # Path to the SQLite database file (relative to agent-cli/)
-db_path: sessions.db
+db_path: memory/sessions.db
+
+# path to the vectorDB 
+vector_db_path: memory/
 
 # Path to the project notes file (relative to agent-cli/)
 project_notes: memory/AGENT.md

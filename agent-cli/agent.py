@@ -17,7 +17,7 @@ def trim_messages(messages):
             trimmed = trimmed[1:]
         messages[:] = trimmed
 
-def run_conversation(messages, tools):
+def run_conversation(messages, tools,model=None):
     response = provider.send(messages=messages, tools=tools)
 
     MAX_TOOL_CALLS = cfg.max_tool_calls
@@ -61,7 +61,7 @@ def run_conversation(messages, tools):
         tool_results = []
 
         for tool in tool_calls:
-            result = execute_tool(tool.name, tool.input)
+            result = execute_tool(tool.name, tool.input,model=model)
             tool_results.append(provider.format_tool_result(tool, result))
 
         provider.append_tool_results(messages=messages, tool_results=tool_results)
@@ -121,8 +121,8 @@ def run_shutdown(messages, tools):
         # return final_text
 
 
-def ask(messages,tools=None):
-    response = run_conversation(messages, tools)
+def ask(messages,tools=None,model=None):
+    response = run_conversation(messages, tools,model=model)
 
     run_shutdown(messages, tools)
 

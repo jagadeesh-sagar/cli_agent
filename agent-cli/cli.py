@@ -90,6 +90,15 @@ def cmd_notes():
     content = notes_path.read_text()
     console.print(Panel(content, title="📝 Project Notes (AGENT.md)", style="green"))
 
+def rag_model():
+    import chromadb
+    from config import cfg 
+    from sentence_transformers import SentenceTransformer
+    from pathlib import Path
+
+    model=SentenceTransformer("all-MiniLM-L6-v2")
+  
+    return model
 
 # ── REPL ───────────────────────────────────────────────────────────────────────
 
@@ -101,6 +110,8 @@ def run_agent():
     import plan as plan_mod
 
     init_db()
+    model=rag_model()
+
     console.print(Panel(
         "[bold green]CLI Agent ready![/]\n"
         f"[dim]Model: {cfg.model}  |  Type 'exit' or 'quit' to stop[/]",
@@ -176,7 +187,7 @@ def run_agent():
                 f"{task.description}\n\n"
                 f"When done, stop. Do not work on any future tasks."
             )})
-            response = ask(messages, tools=tools)
+            response = ask(messages, tools=tools,model=model)
 
             result = verify_task(task.model_dump())   # verify via bash
 
