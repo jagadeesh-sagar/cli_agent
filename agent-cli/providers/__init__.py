@@ -24,6 +24,10 @@ def _load_provider(name: str) -> BaseProvider:
     if name == "anthropic":
         from .anthropic import AnthropicProvider
         return AnthropicProvider()
+        
+    if name == "bedrock":
+        from .bedrock import BedrockProvider
+        return BedrockProvider()
 
     # ── OpenAI-compatible providers (one class handles all of them) ────────────
     if name in ("groq", "deepseek", "openrouter", "together", "openai", "sarvam","google"):

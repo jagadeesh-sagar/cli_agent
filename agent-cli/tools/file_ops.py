@@ -3,15 +3,7 @@ import subprocess
 import os
 
 def get_project_path() -> str:
-    """
-    Return the current working directory at call time.
-
-    Using a function instead of a module-level constant means the agent
-    always operates on whatever folder the user is in when they run it,
-    not the folder Python was in when this module was first imported.
-    """
     return os.getcwd()
-
 
 # tool functions
 def read_file(path: str)-> str:
@@ -69,54 +61,6 @@ def search_codebase(pattern:str,path:str='.')->str:
         return f"ERROR: {result.stderr}"
     
     return result.stdout
-
-def bash(command: str) -> str:
-    """
-    Run a shell command. Tries Docker sandbox first; falls back to local shell
-    if Docker is not available. Always appends [exit_code: N] so callers can
-    reliably detect success (exit_code: 0) vs failure.
-    """
-    def _run_local():
-        result = subprocess.run(
-            ["bash", "-c", command],
-            capture_output=True, text=True, timeout=30,
-            cwd=get_project_path()
-        )
-        output = result.stdout
-        if result.stderr:
-            output += f"\n[stderr]\n{result.stderr}"
-        output += f"\n[exit_code: {result.returncode}]"
-        return output or f"(no output)\n[exit_code: {result.returncode}]"
-
-    try:
-        result = subprocess.run(
-            ["docker", "run", "--rm",
-             "--memory", "256m", "--cpus", "0.5", "--network", "none",
-             "--volume", f"{get_project_path()}:/workspace",
-             "--workdir", "/workspace",
-             "agent-sandbox", "bash", "-c", command],
-            capture_output=True, text=True, timeout=30
-        )
-        # If Docker daemon isn't running, docker CLI exits with code 1 and
-        # prints a "failed to connect" error — treat that as unavailable too.
-        if result.returncode != 0 and (
-            "failed to connect" in result.stderr or
-            "Cannot connect" in result.stderr or
-            "docker.sock" in result.stderr
-        ):
-            return _run_local()
-
-        output = result.stdout
-        if result.stderr:
-            output += f"\n[stderr]\n{result.stderr}"
-        output += f"\n[exit_code: {result.returncode}]"
-        return output or f"(no output)\n[exit_code: {result.returncode}]"
-
-    except FileNotFoundError:
-        # Docker binary not installed at all — run locally
-        return _run_local()
-    except subprocess.TimeoutExpired:
-        return "ERROR: command timed out after 30s\n[exit_code: 1]"
 
 def append_file(path: str, content: str) -> str:
     with open(path, 'a') as f:

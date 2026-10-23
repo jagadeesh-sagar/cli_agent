@@ -14,17 +14,21 @@ from pydantic import BaseModel, ValidationError
 # ── Schema ─────────────────────────────────────────────────────────────────────
 
 class VerifyStep(BaseModel):
-    type: Literal["command"]
-    command: str
+    type: Literal["command", "none"]
+    command: str = ""
 
 class Task(BaseModel):
     id: int
     description: str
     status: Literal["pending", "running", "done", "failed"]
+    allowed_tools: Optional[List[str]] = None
+    target_files: Optional[List[str]] = None
+    context_files: Optional[List[str]] = None
     verify: VerifyStep
     skill: Optional[str] = None   # planner sets this; executor loads the skill
     retries: int = 0              # Python manages this — not in LLM output
     detail: str = ""          # failure reason, populated by mark_task_failed
+    files_changed: List[str] = [] # populated by Python after task finishes
 
 class Plan(BaseModel):
     goal: str

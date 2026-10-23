@@ -4,6 +4,9 @@ from agent import ask
 def verify_task(task: dict) -> dict:
     v = task["verify"]
 
+    if v["type"] == "none" or not v.get("command", "").strip():
+        return {"passed": True, "detail": "read-only task (no shell verification needed)"}
+
     if v["type"] == "command":
         output = execute_tool("bash", {"command": v["command"]})
         passed = "[exit_code: 0]" in output

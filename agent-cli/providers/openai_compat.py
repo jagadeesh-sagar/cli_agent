@@ -166,7 +166,8 @@ class OpenAICompatProvider(BaseProvider):
     # ── Tool call detection ────────────────────────────────────────────────────
 
     def has_tool_calls(self, response) -> bool:
-        return response.choices[0].finish_reason == "tool_calls"
+        message = response.choices[0].message
+        return bool(message.tool_calls and len(message.tool_calls) > 0)
 
     def get_tool_calls(self, response) -> list[ToolCall]:
         """

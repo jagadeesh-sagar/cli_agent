@@ -18,7 +18,8 @@ DEFAULTS = {
     "project_notes": "AGENT.md",
     "max_tokens": 40000,
     "max_tokens_tool": 7000,
-    "max_history_calls": 10
+    "max_history_calls": 10,
+    "github_user": None
 }
 
 
@@ -36,6 +37,7 @@ class AgentConfig:
     max_tokens: int
     max_tokens_tool: int
     max_history_calls: int
+    github_user: str | None = None
 
 
 def load_config() -> AgentConfig:
@@ -63,7 +65,8 @@ def load_config() -> AgentConfig:
         project_notes=merged["project_notes"],
         max_tokens=int(merged["max_tokens"]),
         max_tokens_tool=int(merged["max_tokens_tool"]),
-        max_history_calls=int(merged['max_history_calls'])
+        max_history_calls=int(merged['max_history_calls']),
+        github_user=merged.get("github_user")
     )
 
 cfg = load_config()

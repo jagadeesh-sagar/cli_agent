@@ -1,9 +1,10 @@
-# Options: claude-haiku-4-5-20251001 (anthropic) | meta-llama/llama-4-scout-17b-16e-instruct (groq) | deepseek-chat (deepseek) | sarvam-105b (sarvam) | gemini-2.5-pro
-model: sarvam-105b
+# Options: claude-haiku-4-5-20251001 (anthropic) | meta-llama/llama-4-scout-17b-16e-instruct (groq) | deepseek-chat (deepseek) | sarvam-105b (sarvam) 
+# | gemini-2.5-pro |nvidia/nemotron-3-ultra-550b-a55b:free | xiaomi/mimo-v2.6-pro
+model: nvidia/nemotron-3-ultra-550b-a55b
 
 # LLM provider to use — matches a file in the providers/ folder
 # Options: anthropic | groq | deepseek | openrouter | together | openai | sarvam | google
-provider: sarvam
+provider: openrouter
 
 # Maximum tool calls per task before raising an error
 max_tool_calls: 100
@@ -30,4 +31,7 @@ max_tokens_tool: 10000
 max_history_calls: 10
 
 planner_provider: google   # or openrouter / vertex depending on your proxy setup
-planner_model: gemini-3.1-flash-lite
+
+planner_model: gemini-3.5-flash-lite
+
+github_user: jagadeesh-sagar

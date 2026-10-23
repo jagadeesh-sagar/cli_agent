@@ -1,11 +1,13 @@
 from .session_ops import get_recent_sessions, search_sessions, save_session
 from rich.console import Console
 from . import file_ops
+from .sandbox_ops import start_sandbox,cleanup
 from .skills_ops import load_skill, list_skills
 from .web_ops import web_search
 import os
 from .memory_ops import index_project,scan_directory,semantic_search
 from .schemas import tools
+from .git_ops import git
 
 console = Console()
 
@@ -23,14 +25,15 @@ TOOLS = {
     "get_recent_sessions":get_recent_sessions,
     "search_sessions":    search_sessions,
     "save_session":       save_session,
-    "bash":               file_ops.bash,
+    "bash":               sandbox_ops.bash,
     "web_search":         web_search,
     "list_skills":        list_skills,
     "load_skill":         load_skill,
     "index_project":     index_project,
     "scan_directory": scan_directory,
     "semantic_search": semantic_search,
-}
+    "git":git
+            }
 
 # Paths the model hallucinates when it loses context.
 # These come from its training data (Docker containers, cloud VMs, CI runners).
@@ -67,30 +70,35 @@ def _sanitize_paths(args: dict) -> dict:
     return sanitized
 
 
-def execute_tool(name, input_args,model=None):
-    if name not in TOOLS:
-        return "TOOL_ERROR: unknown tool — check tool name"
+def execute_tool(name, input_args,model=None,mcp_bridge=None):
 
-    try:
-        clean_args = _sanitize_paths(input_args)
-        console.print(f"  [cyan]→ Tool:[/] {name}({clean_args})")
-        if name in {"index_project", "semantic_search"}:
-            result = TOOLS[name](
-                **clean_args,
-                model=model
-            )
+    if name in TOOLS:
+        try:
+            clean_args = _sanitize_paths(input_args)
+            console.print(f"  [cyan]→ Tool:[/] {name}({clean_args})")
+            if name in {"index_project", "semantic_search"}:
+                result = TOOLS[name](
+                    **clean_args,
+                    model=model
+                )
+            else:
+                result = TOOLS[name](**clean_args)
+                
+            result = str(result)
 
-        else:
-            result = TOOLS[name](**clean_args)
-            
-        result = str(result)
-
-        if not result.strip():
-            result = f"(no output from {name})"
-        return result
-
-    except Exception as e:
-        return f"TOOL_ERROR: {type(e).__name__}: {e}"
+            if not result.strip():
+                result = f"(no output from {name})"
+            return result
+        except Exception as e:
+            return f"TOOL_ERROR: MCP {name}: {type(e).__name__}: {e}"
+    
+    if mcp_bridge and name in mcp_bridge.tools:
+        try:
+            result = mcp_bridge.call_tool(name, input_args)
+            return str(result) if result else f'(no output from MCP tool {name})'
+        except Exception as e:
+            return f"TOOL_ERROR: MCP {name}: {type(e).__name__}: {e}"
+    return "TOOL_ERROR: unknown tool — check tool name"
 
 available_tools = [
     "read_file",
@@ -109,8 +117,22 @@ available_tools = [
     "web_search",
     "list_skills",
     "load_skill",
-    "index_project","scan_directory","semantic_search"
+    "index_project","scan_directory","semantic_search",
+    "get_tool_schemas",
+    "git"
 ]
 
-# def list_tools(available_tools:list[str])->list[str]:
-#     return available_tools
+def get_tool_schemas(allowed_names: list[str]) -> list[dict]:
+    """Return only the tool schemas requested, for token efficiency."""
+    from .schemas import TOOL_SCHEMAS
+    name_set = set(allowed_names)
+    return [schema for name, schema in TOOL_SCHEMAS.items() if name in name_set]
+
+def get_tools_descriptions() -> str:
+    """Return a compact string of tool names and descriptions for system prompts."""
+    from .schemas import TOOL_SCHEMAS
+    lines = []
+    for name, schema in TOOL_SCHEMAS.items():
+        desc = schema.get("description", "").split(".")[0]  # Just the first sentence
+        lines.append(f"- {name}: {desc}.")
+    return "\n".join(lines)

@@ -188,22 +188,27 @@ tools = [
         }
 },
 {
-        "name": "bash",
-        "description": (
-            "Run a shell command inside a sandboxed Docker container. "
-            "Use to run Python files, check output, run tests, install packages. "
-            "The container has access to your project files . "
-            "No internet access inside the container. Timeout: 30s."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "command": {
-                    "type": "string",
-                    "description": "Shell command to run. e.g. 'python hello.py' or 'python -m pytest'"
-                }
+    "name": "bash",
+    "description": (
+        "Run a shell command inside a sandboxed Docker container. "
+        "Network access is by the proxy with ACL. "
+        "If Docker is unavailable, the command is NOT executed on the host. "
+        "Timeout: default 60 seconds."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "command": {
+                "type": "string",
+                "description": (
+                    "Shell command to execute inside the sandbox. "
+                    "Examples: 'python hello.py', "
+                    "'python -m pytest', 'npm test', 'ls -la'"
+                )
             },
-            "required": ["command"]
+            "timeout":     {"type": "integer", "description": "set timeout for the bash command"},
+        },
+        "required": ["command"]
     }
 },
 # cache_control on the LAST tool = caches system prompt + ALL tool schemas as one block(only for anthropic as cache is not auto enabled)
@@ -288,6 +293,33 @@ tools = [
         },
         "required": ["project_path"]
     }
+},
+ {
+    "name": "git",
+    "description": (
+        "Execute an allowed Git command in the current working directory. "
+        "The command must start with 'git'. "
+        "Allowed subcommands: status, diff, log, add, commit, branch, "
+        "checkout, stash, show, reset. "
+        "Force options are not allowed."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "command": {
+                "type": "string",
+                "description": (
+                    "A complete Git command, for example "
+                    "'git status', 'git add main.py', or "
+                    "'git commit -m \"initial commit\"'."
+                )
+            }
+        },
+        "required": ["command"],
+    }
 }
-
 ]
+
+# Dictionary mapping tool names to schemas for O(1) lookup for the dynamic injection of the schema
+#  ( a lot to be improved - better to use proxy for schemas)
+TOOL_SCHEMAS = {t["name"]: t for t in tools}

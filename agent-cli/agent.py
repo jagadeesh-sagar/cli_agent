@@ -7,6 +7,36 @@ MAX_HISTORY_TURNS = cfg.max_history_calls  # keep last 10 turns
 provider = get_provider()   
 planner_provider=get_planner_provider()
 
+# tool_name -> latest result string for the current run; used to detect unrecovered TOOL_ERRORs
+_last_tool_status: dict[str, str] = {}
+
+
+def _is_tool_error(result: str) -> bool:
+    return isinstance(result, str) and result.lstrip().startswith("TOOL_ERROR")
+
+
+def get_unrecovered_tool_errors() -> list[str]:
+    """Tools whose most recent call in the last run returned a TOOL_ERROR (never succeeded afterwards)."""
+    return [f"{name}: {res[:200]}" for name, res in _last_tool_status.items() if _is_tool_error(res)]
+
+
+_PERMANENT_ERROR_MARKERS = (
+    "not found", "404", "401", "403", "unauthorized", "forbidden",
+    "bad credentials", "unknown tool", "invalid argument", "is not allowed",
+    "validation failed", "unprocessable",
+)
+_RATE_LIMIT_MARKERS = ("rate limit", "429", "too many requests", "secondary rate limit", "timed out")
+
+
+def classify_failure(detail: str) -> str:
+    """Return 'permanent' | 'rate_limit' | 'retryable' based on the failure detail."""
+    low = detail.lower()
+    if any(m in low for m in _RATE_LIMIT_MARKERS):
+        return "rate_limit"
+    if any(m in low for m in _PERMANENT_ERROR_MARKERS):
+        return "permanent"
+    return "retryable"
+
 
 def trim_messages(messages):
     limit = MAX_HISTORY_TURNS * 2
@@ -17,7 +47,8 @@ def trim_messages(messages):
             trimmed = trimmed[1:]
         messages[:] = trimmed
 
-def run_conversation(messages, tools,model=None):
+def run_conversation(messages, tools, model=None, mcp_bridge=None):
+    _last_tool_status.clear()
     response = provider.send(messages=messages, tools=tools)
 
     MAX_TOOL_CALLS = cfg.max_tool_calls
@@ -51,6 +82,7 @@ def run_conversation(messages, tools,model=None):
                 messages=messages,
                 tool_results=[provider.format_tool_result(tool_calls[0], bail_msg)]
             )
+            _last_tool_status[tool_calls[0].name] = bail_msg
             response = provider.send(messages=messages, tools=tools)
             break
         last_call_signature = current_signature
@@ -61,7 +93,8 @@ def run_conversation(messages, tools,model=None):
         tool_results = []
 
         for tool in tool_calls:
-            result = execute_tool(tool.name, tool.input,model=model)
+            result = execute_tool(tool.name, tool.input, model=model, mcp_bridge=mcp_bridge)
+            _last_tool_status[tool.name] = str(result)
             tool_results.append(provider.format_tool_result(tool, result))
 
         provider.append_tool_results(messages=messages, tool_results=tool_results)
@@ -121,14 +154,14 @@ def run_shutdown(messages, tools):
         # return final_text
 
 
-def ask(messages,tools=None,model=None):
-    response = run_conversation(messages, tools,model=model)
+def ask(messages, tools=None, model=None, mcp_bridge=None):
+    response = run_conversation(messages, tools, model=model, mcp_bridge=mcp_bridge)
 
-    run_shutdown(messages, tools)
+    # run_shutdown(messages, tools)
 
     return provider.get_text(response)
 
-def planner(user_goal: str) -> str:
+def planner(user_goal: str, mcp_bridge=None) -> str:
     """
     Call the planner LLM with no tools and return raw JSON string.
     Uses get_planner_provider() which may be a different model than the executor(basically the planner is bigger model).
@@ -138,5 +171,5 @@ def planner(user_goal: str) -> str:
 
     planner_provider = get_planner_provider()
     system_prompt = "You are a project planner. Output ONLY raw JSON, no markdown, no explanation."
-    user_message = build_planning_prompt(user_goal)
+    user_message = build_planning_prompt(user_goal, mcp_bridge=mcp_bridge)
     return planner_provider.raw_send(system_prompt, user_message)

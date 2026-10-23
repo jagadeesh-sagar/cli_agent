@@ -6,3 +6,4 @@ sarvamai
 rich
 tavily
 chromadb
+mcp
