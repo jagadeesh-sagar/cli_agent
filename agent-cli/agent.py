@@ -155,13 +155,13 @@ def run_shutdown(messages, tools):
 
 
 def ask(messages, tools=None, model=None, mcp_bridge=None):
-    response = run_conversation(messages, tools, model=model, mcp_bridge=mcp_bridge)
+    response = run_conversation(messages, tools=tools, model=model, mcp_bridge=mcp_bridge)
 
     # run_shutdown(messages, tools)
 
     return provider.get_text(response)
 
-def planner(user_goal: str, mcp_bridge=None) -> str:
+def planner(user_goal: str, mcp_bridge=None,project_memory=None,session_turns=None) -> str:
     """
     Call the planner LLM with no tools and return raw JSON string.
     Uses get_planner_provider() which may be a different model than the executor(basically the planner is bigger model).
@@ -171,5 +171,5 @@ def planner(user_goal: str, mcp_bridge=None) -> str:
 
     planner_provider = get_planner_provider()
     system_prompt = "You are a project planner. Output ONLY raw JSON, no markdown, no explanation."
-    user_message = build_planning_prompt(user_goal, mcp_bridge=mcp_bridge)
+    user_message = build_planning_prompt(user_goal, mcp_bridge=mcp_bridge,project_memory=project_memory,session_turns=session_turns)
     return planner_provider.raw_send(system_prompt, user_message)

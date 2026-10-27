@@ -70,7 +70,7 @@ _PROVIDER_CONFIG = {
     "deepseek": {"env_key": "DEEPSEEK_API_KEY",  "base_url": "https://api.deepseek.com"},
     "together": {"env_key": "TOGETHER_API_KEY",  "base_url": "https://api.together.xyz/v1"},
     "openrouter":{"env_key": "OPENROUTER_API_KEY","base_url": "https://openrouter.ai/api/v1"},
-    "sarvam":   {"env_key": "SARVAM_API_KEY",    "base_url": "https://api.sarvam.ai/v1"},
+    "sarvam":   {"env_key": "SARVAM_API_KEY",    "base_url": "https://api.sarvam.ai/v2"},
     "google":   {"env_key": "GEMINI_API_KEY",     "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/"},
     "openai":   {"env_key": "OPENAI_API_KEY",    "base_url": None},   # uses default
 }

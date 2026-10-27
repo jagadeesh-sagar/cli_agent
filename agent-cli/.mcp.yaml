@@ -9,5 +9,4 @@ mcp_servers:
 
     transport: "stdio"
     env:
-      GITHUB_PERSONAL_ACCESS_TOKEN: "$GITHUB_TOKEN"
       GITHUB_TOKEN: "$GITHUB_TOKEN"

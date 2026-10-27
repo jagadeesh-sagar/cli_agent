@@ -194,6 +194,8 @@ def run_agent():
     mcp_bridge = create_mcp_bridge()
     mcp_tool_info = mcp_bridge.get_prompt_description()
 
+    session_turns=[]
+
     init_db()
     model=rag_model()
 
@@ -204,23 +206,12 @@ def run_agent():
         style="green"
     ))
 
-    messages = []   # persists across turns so the agent remembers context
+    # messages = []   # persists across turns so the agent remembers context
     
     # Inject short term memory if exists
     cwd = os.getcwd()
     context_path = Path(cwd) / "memory/AGENT.md"
-    if context_path.exists():
-        memory_content = context_path.read_text().strip()
-        if memory_content:
-            messages.append({
-                "role": "user",
-                "content": f"[SYSTEM: Previous project memory restored]\n\n{memory_content}\n\n[Please use this context for future tasks.]"
-            })
-            messages.append({
-                "role": "assistant",
-                "content": "Acknowledged. I have loaded the previous project memory and will use it as context for upcoming tasks."
-            })
-
+    project_memory = context_path.read_text().strip() if context_path.exists() else ""
 
     try:
         start_sandbox()
@@ -255,7 +246,7 @@ def run_agent():
         cwd_context = f"[Working directory: {cwd}]"
 
         console.print("\n[bold yellow]🧠 Planning…[/]")
-        raw_json = planner(user_input, mcp_bridge=mcp_bridge)          # planner LLM → raw JSON string
+        raw_json = planner(user_input, mcp_bridge=mcp_bridge,project_memory=project_memory[-3000:],session_turns=session_turns[-5:])          # planner LLM → raw JSON string
 
         try:
             goal_plan = plan_mod.validate_json(raw_json)   # parse + validate
@@ -324,12 +315,23 @@ def run_agent():
                     f"⚠ RETRY: previous attempt at this task failed with:\n"
                     f"{retry_notes[task.id]}\nFix the cause; do not repeat the same failing call.\n\n"
                 )
+                        # Lightweight handoff from the immediately preceding user turn (if any)
+            last_turn_context = ""
+            if session_turns:
+                last = session_turns[-1]
+                last_turn_context = (
+                    f"PREVIOUS USER TURN (for reference only — do NOT re-execute):\n"
+                    f"- User asked: {last['user']}\n"
+                    f"- Status: {last['status']}\n"
+                    f"- Output summary: {last['assistant_reply'][:600]}\n\n"
+                )
 
             # Scope the executor strictly to this ONE task.
             messages = []
             messages.append({"role": "user", "content": (
                 f"OVERALL GOAL: {goal_plan.goal}\n\n"
                 f"{roadmap}\n"
+                f"{last_turn_context}"
                 f"{prev_context}"
                 f"{cwd_context}\n"
                 f"{skill_context}"
@@ -344,6 +346,8 @@ def run_agent():
                 f"- Tasks marked ○ above will be handled later by separate calls.\n"
                 f"- When Task {task.id} is complete, STOP immediately.\n"
             )})
+
+    
             # print('---------------------jaggu----------------',messages)
             
             from tools import get_tool_schemas
@@ -407,8 +411,25 @@ def run_agent():
                     retry_notes[task.id] = result["detail"][:300]
                     task.status = "pending"
                     plan_mod.save_plan(goal_plan)
+
         save_project_context(goal_plan=goal_plan, cwd=cwd)
+        if context_path.exists():
+            project_memory = context_path.read_text().strip()
+
         any_failed = any(t.status != "done" for t in goal_plan.tasks)
+        failed_details = [t.detail for t in goal_plan.tasks if t.status == "failed" and t.detail]
+
+        session_turns.append({
+        "turn": len(session_turns)+1,
+        "user": user_input,
+        "goal": goal_plan.goal,
+        "status": "failed" if any_failed else "Completed",
+        "tasks_summary": [f"{t.id}. {t.description} [{t.status}]" for t in goal_plan.tasks],
+        "files_changed": [f for t in goal_plan.tasks for f in t.files_changed],
+        "assistant_reply": response[:1200],  
+        "error": failed_details[-1][:300] if failed_details else None
+         })
+         
         status_prefix = "[bold red]❌[/]" if any_failed else "[bold green]✅[/]"
         console.print(f"\n{status_prefix} {response}")
 

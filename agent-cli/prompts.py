@@ -3,19 +3,14 @@ from tools import list_skills, available_tools, get_tools_descriptions
 schema = Plan.model_json_schema()
 available_skills = list_skills() 
 
-def build_planning_prompt(goal: str, mcp_bridge=None) -> str:
+def build_planning_prompt(goal: str, mcp_bridge=None,project_memory=None,session_turns=None) -> str:
     import os
     from pathlib import Path
     from config import cfg
     from tools.memory_ops import scan_directory
 
     cwd = os.getcwd()
-    gh_hint = (
-        f"\nUSER IDENTITY:\n- Default GitHub owner/username: '{cfg.github_user}' "
-        f"(always use this as `owner` when the user gives only a repo name or says 'my repo').\n"
-        if getattr(cfg, "github_user", None) else ""
-    )
-
+   
     lines = [
         f"  {p.relative_to(cwd)}"
         for p in sorted(scan_directory(Path(cwd)))
@@ -26,9 +21,18 @@ def build_planning_prompt(goal: str, mcp_bridge=None) -> str:
 You are a project planner. The user wants to: "{goal}"
 
 WORKING DIRECTORY: {cwd}
-{gh_hint}
 EXISTING FILES IN PROJECT:
 {file_tree}
+
+PAST PROJECT MEMORY (from memory/AGENT.md):
+{project_memory or "(none yet)"}
+RECENT SESSION TURNS (current chat session):
+{session_turns or "(first turn in this session)"}
+
+CONTINUITY & CONTEXT RULES:
+- If the previous turn in `session_turns` failed or asked the user a clarifying question, and the user's new message answers it, combine them into a complete goal.
+- Resolve pronouns like "it", "that repo", "the second commit", "fix that" using `session_turns` and `project_memory`.
+- IMPORTANT: The task executor does NOT see `project_memory` or full `session_turns`. Bake every required name, repo owner, file path, or SHA directly into each task's `description` so it is 100% self-contained.
 
 {mcp_bridge.get_prompt_description() if mcp_bridge else ""}
 
