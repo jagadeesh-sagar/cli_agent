@@ -34,4 +34,4 @@ planner_provider: google   # or openrouter / vertex depending on your proxy setu
 
 planner_model: gemini-3.5-flash-lite
 
-# github_user: jagadeesh-sagar
+github_user: jagadeesh-sagar

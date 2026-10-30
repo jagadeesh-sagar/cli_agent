@@ -239,61 +239,54 @@ tools = [
     },
 },
 {
-    "name": "semantic_search",
+    "name": "code_search",
     "description": (
-        "Search the codebase by meaning using semantic vector search. "
-        "Use this when the user asks about a concept, behavior, or functionality "
-        "and you do not know the exact symbol or file name. "
-        "For example, use this for questions like 'where is authentication "
-        "handled?' or 'how does the application manage database connections?'. "
-        "Returns the most semantically relevant code chunks and their file paths."
+        "Hybrid code search over the current project: semantic vectors + BM25 keywords + "
+        "symbol index, then cross-encoder reranking. Returns the most relevant snippets with "
+        "file paths and line numbers. Use it FIRST whenever you need to find where something "
+        "is defined, implemented, configured or handled. Works for exact names "
+        "(MCPBridge, MAX_RETRIES_PER_TASK, Class.method), file names (cli.py) and "
+        "natural-language questions ('how does the sandbox block internet access?'). "
+        "The index refreshes itself for changed files automatically."
     ),
     "input_schema": {
         "type": "object",
         "properties": {
             "query": {
                 "type": "string",
-                "description": (
-                    "Natural-language description of the code or behavior "
-                    "you are looking for."
-                )
+                "description": "Identifier, file name, or natural-language question."
             },
-            "n_results": {
+            "k": {
                 "type": "integer",
-                "description": (
-                    "Number of relevant code chunks to return. "
-                    "Use 3-5 for normal searches and increase only when necessary."
-                )
-                }
-
+                "description": "Number of snippets to return (default 6, max 15)."
             }
         },
         "required": ["query"]
-    },
-    {
+    }
+},
+{
     "name": "index_project",
     "description": (
-        "Index the source code of a project into the vector database for "
-        "semantic code search. Provide the root directory of the project. "
-        "The project path is recursively scanned and supported source files are "
-        "split into chunks, embedded, and stored in the vector database. "
-        "Use this when the codebase has not been indexed yet or after major "
-        "codebase changes."
+        "Build or rebuild the code search index for a project. Usually NOT needed: "
+        "code_search refreshes the index automatically. Use force=true only after "
+        "large refactors or if results look stale."
     ),
     "input_schema": {
         "type": "object",
         "properties": {
             "project_path": {
                 "type": "string",
-                "description": (
-                    "Absolute or relative path to the root directory of the "
-                    "project to index. Example: '/home/jaggu/Desktop/Ecommerce/ecommerce'"
-                )
+                "description": "Project root directory. Defaults to the current working directory."
+            },
+            "force": {
+                "type": "boolean",
+                "description": "Re-embed every file even if unchanged."
             }
         },
-        "required": ["project_path"]
+        "required": []
     }
 },
+ 
  {
     "name": "git",
     "description": (

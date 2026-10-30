@@ -197,7 +197,6 @@ def run_agent():
     session_turns=[]
 
     init_db()
-    model=rag_model()
 
     console.print(Panel(
         "[bold green]CLI Agent ready![/]\n"
@@ -292,8 +291,11 @@ def run_agent():
             if task.context_files:
                 for f in task.context_files:
                     try:
-                        content = Path(f).read_text()
-                        context += f"\n--- {f} ---\n{content}\n"
+                        numbered = "\n".join(
+                            f"{i+1} | {line}"
+                            for i, line in enumerate(Path(f).read_text().splitlines()[:120])
+                        )
+                        context += f"\n--- {f} (first 120 lines) ---\n{numbered}\n"
                     except Exception as e:
                         context += f"\n--- {f} ---\n[Could not read file: {e}]\n"
 
@@ -303,6 +305,7 @@ def run_agent():
                 prev_context = (
                     f"PREVIOUS TASK COMPLETED: {last_state['completed_task']}\n"
                     f"FILES NOW EXIST: {', '.join(last_state['files_changed'])}\n"
+                    f"PREVIOUS TASK FINDINGS:\n{last_state.get('findings', '')}\n"
                     f"VERIFY OUTPUT: {last_state['verify_output']}\n\n"
                 )
 
@@ -352,9 +355,9 @@ def run_agent():
             
             from tools import get_tool_schemas
             from tools.schemas import tools as ALL_TOOLS_LIST
-            allowed_names = task.allowed_tools if task.allowed_tools else [t["name"] for t in ALL_TOOLS_LIST]
+            allowed_names = task.allowed_tools if task.allowed_tools is not None else [t["name"] for t in ALL_TOOLS_LIST]  
             task_tools = get_tool_schemas(allowed_names)
-
+            
             if mcp_bridge:
                 for name in (task.allowed_tools or []):
                     if name in mcp_bridge.tools:
@@ -362,7 +365,7 @@ def run_agent():
                         
             console.print(f"[dim]  tools:  {[t['name'] for t in task_tools]}[/]")
             
-            response = ask(messages, tools=task_tools, model=model, mcp_bridge=mcp_bridge)
+            response = ask(messages, tools=task_tools, mcp_bridge=mcp_bridge)
 
             result = verify_task(task.model_dump())   # verify via bash
 
@@ -381,7 +384,8 @@ def run_agent():
                 last_state = {
                     "completed_task": task.description,
                     "files_changed": files_changed,
-                    "verify_output": result["detail"]
+                    "verify_output": result["detail"],
+                    "findings": response[:1500]
                 }
 
             else:

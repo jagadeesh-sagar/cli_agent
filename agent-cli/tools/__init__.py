@@ -5,7 +5,8 @@ from .sandbox_ops import start_sandbox,cleanup
 from .skills_ops import load_skill, list_skills
 from .web_ops import web_search
 import os
-from .memory_ops import index_project,scan_directory,semantic_search
+from .memory_ops import scan_directory
+from .rag import index_project, code_search
 from .schemas import tools
 from .git_ops import git
 
@@ -31,7 +32,7 @@ TOOLS = {
     "load_skill":         load_skill,
     "index_project":     index_project,
     "scan_directory": scan_directory,
-    "semantic_search": semantic_search,
+    "code_search":code_search,
     "git":git
             }
 
@@ -76,14 +77,8 @@ def execute_tool(name, input_args,model=None,mcp_bridge=None):
         try:
             clean_args = _sanitize_paths(input_args)
             console.print(f"  [cyan]→ Tool:[/] {name}({clean_args})")
-            if name in {"index_project", "semantic_search"}:
-                result = TOOLS[name](
-                    **clean_args,
-                    model=model
-                )
-            else:
-                result = TOOLS[name](**clean_args)
-                
+
+            result = TOOLS[name](**clean_args)              
             result = str(result)
 
             if not result.strip():
@@ -97,7 +92,7 @@ def execute_tool(name, input_args,model=None,mcp_bridge=None):
             result = mcp_bridge.call_tool(name, input_args)
             return str(result) if result else f'(no output from MCP tool {name})'
         except Exception as e:
-            return f"TOOL_ERROR: MCP {name}: {type(e).__name__}: {e}"
+            return f"TOOL_ERROR: {name}: {type(e).__name__}: {e}"
     return "TOOL_ERROR: unknown tool — check tool name"
 
 available_tools = [
@@ -117,7 +112,7 @@ available_tools = [
     "web_search",
     "list_skills",
     "load_skill",
-    "index_project","scan_directory","semantic_search",
+    "index_project","scan_directory","code_search"
     "get_tool_schemas",
     "git"
 ]

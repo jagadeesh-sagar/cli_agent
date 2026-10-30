@@ -52,7 +52,9 @@ TASK OWNERSHIP RULES:
 - If a later task modifies a file created by an earlier task, the earlier task must create only the initial version.
 - Do not include future-task changes in an earlier task.
 - Verification commands must verify work performed by the current task, not work that may already exist from previous tasks.
-- For read-only tasks (queries, MCP lookups, explanations with no file edits), set verify to {{"type": "none", "command": ""}} and do NOT include 'bash' in allowed_tools just to run an echo.
+- NEVER split a read-only question/explanation into multiple tasks
+ (like "1. Search, 2. Examine, 3. Synthesize").
+   Always make a read-only question a SINGLE task with allowed_tools: ["code_search", "read_file_section"] and context_files: [].
 """
 
 
@@ -92,5 +94,6 @@ HARD RULES:
 - Never call bash to delete files
 - str_replace old_str must be the shortest unique string possible
 - After any rename: search_codebase to confirm 0 occurrences remain
-
+- To locate or explain code, call `code_search` FIRST. `code_search` already returns line-numbered code snippets across file /
+ do NOT call `search_codebase` or `read_file_section` again if `code_search` already shows the lines you need. Only call `read_file_section` if a snippet was truncated.
 """

@@ -7,3 +7,5 @@ rich
 tavily
 chromadb
 mcp
+sentence-transformers
+numpy

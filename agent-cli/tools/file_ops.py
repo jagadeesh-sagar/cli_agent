@@ -20,8 +20,23 @@ def read_file_section(path: str,start_line:int,end_line:int)-> str:
     chunk=lines[start-1:end]
     return '\n'.join(f"{start+i} :{line}" for i,line in enumerate(chunk))
 
-def list_dir(path: str)->str:
-    return "\n".join(str(p) for p in Path(path).rglob("*") if p.is_file())
+def list_dir(path: str) -> str:
+    ignore_dirs = {
+        "venv", ".venv", "__pycache__",
+        "node_modules", ".git", "dist", "build", }
+    
+    ignore_extensions = {
+        ".pyc", ".log", ".tmp", ".exe", ".bak", }
+
+    files = []
+    for root, dirs, filenames in os.walk(path):
+        dirs[:] = [d for d in dirs if d not in ignore_dirs]
+
+        for filename in filenames:
+            if os.path.splitext(filename)[1].lower() not in ignore_extensions:
+                files.append(os.path.join(root, filename))
+
+    return "\n".join(files)
 
 def write_file(path: str, content: str) -> str:
     p = Path(path)

@@ -22,8 +22,8 @@ def start_sandbox(container_name='agent-sandbox'):
     if not os.path.isfile(squid_conf_path):
         raise FileNotFoundError(f"Missing configuration file at: {squid_conf_path}")
     
-    subprocess.run(["docker","network","create","--internal","agent-internal-net"],check=False)
-    subprocess.run(["docker","network","create","agent-proxy-net"],check=False)
+    subprocess.run(["docker","network","create","--internal","agent-internal-net"],check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(["docker","network","create","agent-proxy-net"],check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     subprocess.run([
         "docker", "run", "-d", "--name", "agent-proxy",

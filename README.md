@@ -71,7 +71,67 @@ User Goal (Interactive REPL)
 | 🔄 **Two-Tier Memory & Continuity** | Combines long-term timestamped project notes (`memory/AGENT.md`), SQLite session logs (`memory/sessions.db`), and an in-memory `session_turns` ledger for pronoun resolution and follow-up continuity across turns. |
 | 🛡️ **Smart Failure Classification & Self-Healing** | Tracks tool errors across turns, aborts immediately on permanent 404/401/403 errors, backs off exponentially on 429 rate limits, and retries transient failures with a clean-slate context. |
 | 📚 **On-Demand Domain Skills** | Loads specialized `skills/<name>/SKILL.md` guides (`fastapi`, `react`, `sqlalchemy`, `celery`, `drf-api-design`, `pdf-processing`, `git-workflow`, `python`) only for tasks that need them—saving prompt tokens. |
-| 🔍 **Codebase Search & RAG** | Fast ripgrep (`search_codebase`) alongside semantic/hybrid code indexing (`tools/rag/`, ChromaDB + SentenceTransformers + AST chunking). |
+| 🔍 **Intelligent Hybrid Code RAG** | 3-way parallel retrieval (**ChromaDB Vector Search** + **SQLite FTS5 BM25** with CamelCase/snake_case identifier splitting + **AST Symbol Index**), combined via query-adaptive **Weighted Reciprocal Rank Fusion (RRF)**, scored by a **Cross-Encoder Reranker** (`ms-marco-MiniLM-L-6-v2`) with exact-symbol pinning, and formatted by a line-numbered **Context Builder**. |
+
+---
+
+## 🔍 Intelligent Hybrid Code RAG (`tools/rag/`)
+
+Naive vector-only RAG fails on source code because embedding models struggle with exact identifier names (`MAX_RETRIES_PER_TASK`, `MCPBridge._server_loop`) and fixed-size character slicing cuts functions in half.
+
+CLI Agent implements a dedicated, per-project **Hybrid Code Search Engine** (`code_search`) stored in `<project_root>/.agent_index/`:
+
+```text
+                       Query ("MCPBridge._server_loop" or "how does retry backoff work?")
+                                              │
+                                              ▼
+                              ┌───────────────────────────────┐
+                              │        Query Analyzer         │
+                              │ Detects snake_case, CamelCase │
+                              │   Class.method, or natural    │
+                              └───────────────┬───────────────┘
+                                              │
+                 ┌────────────────────────────┼────────────────────────────┐
+                 ▼                            ▼                            ▼
+      ┌────────────────────┐       ┌────────────────────┐       ┌────────────────────┐
+      │   Vector Search    │       │    BM25 Search     │       │   Symbol Search    │
+      │  ChromaDB + MiniLM │       │  SQLite FTS5 with  │       │ AST Symbol Table   │
+      │  (L2-normalized    │       │  Identifier Split  │       │ (functions, classes│
+      │  semantic chunks)  │       │ (MCPBridge → mcp,  │       │  methods, vars &   │
+      │                    │       │      bridge)       │       │   line ranges)     │
+      └──────────┬─────────┘       └──────────┬─────────┘       └──────────┬─────────┘
+                 └────────────────────────────┼────────────────────────────┘
+                                              ▼
+                              ┌───────────────────────────────┐
+                              │  Query-Adaptive Weighted RRF  │
+                              │  • Code query: boosts Symbol  │
+                              │    (1.6) & BM25 (1.0)         │
+                              │  • Natural query: boosts      │
+                              │    Vector (1.2)               │
+                              └───────────────┬───────────────┘
+                                              ▼
+                              ┌───────────────────────────────┐
+                              │    Cross-Encoder Reranker     │
+                              │  (ms-marco-MiniLM-L-6-v2)     │
+                              │  + Exact-Symbol Pinning       │
+                              │  + Per-File Diversity Cap (3) │
+                              └───────────────┬───────────────┘
+                                              ▼
+                              ┌───────────────────────────────┐
+                              │        Context Builder        │
+                              │  • Merges adjacent line spans │
+                              │  • Attaches exact line numbers│
+                              │  • Enforces 9,000-char budget │
+                              └───────────────┬───────────────┘
+                                              ▼
+                                         Executor LLM
+```
+
+### Key RAG Capabilities
+- **AST-Aware Chunking (`chunker.py`):** Parses Python files via `ast` so every function, class, and method is indexed as a complete semantic unit with its exact start/end line numbers and signature (plus regex symbol extraction and overlapping line windows for JS/TS/Go/Rust/C++/etc.).
+- **Incremental Auto-Indexing (`indexer.py`):** Before every `code_search`, the indexer performs a fast `mtime + size + SHA-1` check across the project—re-chunking and re-embedding **only** modified files and purging deleted files automatically.
+- **Identifier-Aware BM25 (`store.py`):** Uses SQLite **FTS5** (`bm25()`) and expands compound identifiers (`_PERMANENT_ERROR_MARKERS` → `permanent error markers`, `MCPBridge` → `mcp bridge`) so partial keyword queries still match exact code symbols.
+- **Built-in Retrieval Benchmark (`eval.py`):** Run `python -m tools.rag.eval .` inside `agent-cli/` to benchmark `hit@1`, `hit@5`, and per-query latency across semantic, lexical, and symbol queries.
 
 ---
 
@@ -258,8 +318,19 @@ cli_agent/
         ├── squid.conf            # Squid proxy ACL configuration for the Docker sandbox
         ├── file_ops.py           # File read/write/replace & ripgrep search
         ├── git_ops.py            # Whitelisted git tool with safety checks
-        ├── memory_ops.py         # Directory scanner & vector indexing helpers
-        ├── rag/                  # Modular Hybrid Code RAG package (AST chunker, store, settings)
+        ├── memory_ops.py         # Project directory scanner
+        ├── rag/                  # Intelligent Hybrid Code RAG package
+        │   ├── __init__.py       # Public API (code_search, index_project, warm_up)
+        │   ├── settings.py       # Model names, chunking & RRF/reranker hyperparameters
+        │   ├── chunker.py        # Python AST + multi-language regex symbol & window chunker
+        │   ├── store.py          # Thread-safe SQLite store (files, chunks, FTS5 BM25, symbols)
+        │   ├── vector.py         # ChromaDB persistent vector index wrapper
+        │   ├── models.py         # Offline-first, silent SentenceTransformer & CrossEncoder loader
+        │   ├── indexer.py        # Incremental mtime/size/SHA-1 change-detecting indexer
+        │   ├── retrieve.py       # Query analyzer, 3-way retrieval, weighted RRF & reranking
+        │   ├── builder.py        # Span-merging, line-numbered, token-budgeted context formatter
+        │   ├── search.py         # Engine cache & tool entry points
+        │   └── eval.py           # Retrieval benchmark suite (hit@1 / hit@5)
         ├── session_ops.py        # SQLite session persistence
         ├── skills_ops.py         # Skill discovery and loader
         └── web_ops.py            # Tavily web search integration
