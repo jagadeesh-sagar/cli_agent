@@ -1,7 +1,0 @@
-anthropic
-openai
-python-dotenv
-pyyaml
-sarvamai
-rich
-tavily
